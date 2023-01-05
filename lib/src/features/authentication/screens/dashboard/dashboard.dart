@@ -30,22 +30,23 @@ class _DashboardState extends State<Dashboard> {
   Position? _currentPosition;
   Geolocator? _geolocator;
 
+  // ignore: prefer_final_fields
+  List<StreamSubscription<dynamic>> _streamSubscriptions =
+      <StreamSubscription<dynamic>>[];
+  List<double> _accelerometerValues = <double>[];
+
   final LocationSettings locationSettings = LocationSettings(
-  accuracy: LocationAccuracy.high,
-  distanceFilter: 100,
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 100,
   );
 
- 
-  double _accelerationX = 0;
-  double _accelerationY = 0;
-  double _accelerationZ = 0;
+  static double _accelerationX = 0;
+  static double  _accelerationY = 0;
+  static double _accelerationZ = 0;
+  // static const LatLng sourceLocation = LatLng(14.560243, 121.0827677);
+  // static const LatLng destination = LatLng(37.33429383, -122.06600055);
 
-  static const LatLng sourceLocation = LatLng(14.560243, 121.0827677);
-  static const LatLng destination = LatLng(37.33429383, -122.06600055);
-
-  // void _onMapCreated(GoogleMapController controller) {
-  //   mapController = controller;
-  // }
+  bool isSwitch = false;
 
   @override
   void initState() {
@@ -66,10 +67,12 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // if (_accelerationX > 15 || _accelerationY > 15 || _accelerationZ > 15) {
-    //   print('Crash Detected!');
-    //   // Do something, such as send an alert to the user or emergency services
-    // }
+    if (_accelerationX > 15 ||
+        _accelerationY > 15 ||
+        _accelerationZ > 15) {
+      print('Crash Detected!');
+      // Do something, such as send an alert to the user or emergency services
+    }
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
@@ -111,31 +114,87 @@ class _DashboardState extends State<Dashboard> {
           ],
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            height: 500,
-            child: GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: LatLng(_currentPosition?.latitude ?? 0,
-                    _currentPosition?.longitude ?? 0),
-                zoom: 15.0,
-              ),
-              // markers: _currentPosition != null
-              //     ? {
-              //         Marker(
-              //           markerId: const MarkerId('currentLocation'),
-              //           position: LatLng(_currentPosition!.latitude,
-              //               _currentPosition!.longitude),
-              //         ),
-              //       }
-              //     : {},
+          Column(
+            children: [
+              Container(
+                height: 500,
+                child: GoogleMap(
+                  onMapCreated: _onMapCreated,
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(_currentPosition?.latitude ?? 0,
+                        _currentPosition?.longitude ?? 0),
+                    zoom: 15.0,
+                  ),
+                  // markers: _currentPosition != null
+                  //     ? {
+                  //         Marker(
+                  //           markerId: const MarkerId('currentLocation'),
+                  //           position: LatLng(_currentPosition!.latitude,
+                  //               _currentPosition!.longitude),
+                  //         ),
+                  //       }
+                  //     : {},
                   myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                ),
+              ),
+              Container(
+                height: 20,
+              )
+            ],
+          ),
+          Positioned(
+            top: 0,
+            bottom: 600,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: Colors.black,
+              height: 100,
+              width: 200,
+              padding: EdgeInsets.all(5),
+              child: Row(
+                // ignore: prefer_const_literals_to_create_immutables
+                children: [
+                  const Text(
+                    "Turn on Automatic Car Crash Detection",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  Switch.adaptive(
+                      value: isSwitch,
+                      inactiveThumbColor: Colors.orange,
+                      inactiveTrackColor: Colors.black87,
+                      activeColor: Colors.blueAccent,
+                      activeTrackColor: Colors.blue.withOpacity(0.4),
+                      onChanged: (bool newBool) {
+                        setState(() {
+                          isSwitch = newBool;
+                        });
+                        if (isSwitch == true) {
+                          _streamSubscriptions.add(accelerometerEvents!
+                              .listen((AccelerometerEvent event) {
+                            setState(() {
+                            _accelerationX = event.x;
+                            _accelerationY = event.y;
+                            _accelerationZ = event.z;
+                            });
+                          }));
+                        } else if (isSwitch == false) {
+                          // ignore: unused_local_variable
+                          for (StreamSubscription<dynamic> subscription
+                              in _streamSubscriptions) {
+                            subscription.cancel();
+                          }
+                        }
+                      })
+                ],
+              ),
             ),
           ),
-          Container(height: 20,)
-        ], 
+        ],
       ),
     );
   }
@@ -163,10 +222,13 @@ class _DashboardState extends State<Dashboard> {
       ));
     }
 
-     StreamSubscription<Position> positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-    (Position? _currentPosition) {
-        print(_currentPosition == null ? 'Unknown' : '${_currentPosition.latitude.toString()}, ${_currentPosition.longitude.toString()}');
-        _mapController?.animateCamera(CameraUpdate.newLatLng(
+    StreamSubscription<Position> positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position? _currentPosition) {
+      print(_currentPosition == null
+          ? 'Unknown'
+          : '${_currentPosition.latitude.toString()}, ${_currentPosition.longitude.toString()}');
+      _mapController?.animateCamera(CameraUpdate.newLatLng(
         LatLng(_currentPosition!.latitude, _currentPosition.longitude),
       ));
     });
@@ -199,11 +261,9 @@ class _DashboardState extends State<Dashboard> {
   //     ),
   //   );
   // }
-
   @override
   void dispose() {
     _mapController?.dispose();
     super.dispose();
-    
   }
 }
