@@ -6,8 +6,8 @@ import 'package:rescue_app/src/features/authentication/screens/contact_details/c
 
 class UserRepository extends GetxController {
   static UserRepository get intance => Get.find();
-
   final _db = FirebaseFirestore.instance;
+  
 
 //Store user in FireStore
   createUser(UserModel user) async {

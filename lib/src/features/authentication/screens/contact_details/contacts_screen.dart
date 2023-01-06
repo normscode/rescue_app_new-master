@@ -94,11 +94,13 @@ class _SetContactDetailsState extends State<ContactDetailsScreen> {
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(32.0))),
-                    validator: (String? value) {
-                      if (value!.isEmpty) {
-                        return "Please Enter some text";
+                    validator: (value) {
+                      if (value!.isEmpty ||
+                          !RegExp(r'^[a-z A-Z]+$').hasMatch(value)) {
+                        return "Enter correct name";
+                      } else {
+                        return null;
                       }
-                      return null;
                     },
                   ),
                 ),
@@ -118,11 +120,14 @@ class _SetContactDetailsState extends State<ContactDetailsScreen> {
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(32.0))),
-                    validator: (String? value) {
-                      if (value!.isEmpty) {
-                        return 'Please enter some text';
+                    validator: (value) {
+                      if (value!.isEmpty ||
+                          !RegExp(r'^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]+$')
+                              .hasMatch(value)) {
+                        return "Enter correct Phone No";
+                      } else {
+                        return null;
                       }
-                      return null;
                     },
                   ),
                 ),
@@ -152,11 +157,13 @@ class _SetContactDetailsState extends State<ContactDetailsScreen> {
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(32.0))),
-                    validator: (String? value) {
-                      if (value!.isEmpty) {
-                        return 'Please enter some text';
+                    validator: (value) {
+                      if (value!.isEmpty ||
+                          !RegExp(r'^[a-z A-Z]+$').hasMatch(value)) {
+                        return "Enter correct name";
+                      } else {
+                        return null;
                       }
-                      return null;
                     },
                   ),
                 ),
@@ -176,11 +183,14 @@ class _SetContactDetailsState extends State<ContactDetailsScreen> {
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(32.0))),
-                    validator: (String? value) {
-                      if (value!.isEmpty) {
-                        return 'Please enter some text';
+                    validator: (value) {
+                      if (value!.isEmpty ||
+                          !RegExp(r'^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]+$')
+                              .hasMatch(value)) {
+                        return "Enter correct Phone No";
+                      } else {
+                        return null;
                       }
-                      return null;
                     },
                   ),
                 ),

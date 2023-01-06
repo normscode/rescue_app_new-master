@@ -16,6 +16,7 @@ class UpdateProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final contactController = Get.put(ContactDetailsController());
     final controller = Get.put(ProfileController());
+    
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
