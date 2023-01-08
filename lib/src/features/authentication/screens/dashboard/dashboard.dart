@@ -9,6 +9,7 @@ import 'package:rescue_app/src/constants/image_strings.dart';
 import 'package:rescue_app/src/constants/sizes.dart';
 import 'package:rescue_app/src/constants/text_strings.dart';
 import 'package:rescue_app/src/features/authentication/controllers/contact_details_controller.dart';
+import 'package:rescue_app/src/features/authentication/controllers/profile_controller.dart';
 import 'package:rescue_app/src/features/authentication/screens/contact_details/contacts_screen.dart';
 import 'package:rescue_app/src/features/authentication/screens/dashboard/widgets/drawer_header.dart';
 import 'package:rescue_app/src/features/authentication/screens/dashboard/widgets/widgets_dashboard.dart';
@@ -19,12 +20,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:all_sensors/all_sensors.dart';
 import 'package:flutter_beep/flutter_beep.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:rescue_app/src/repository/authentication_repository/authentication_repository.dart';
 import 'package:twilio_flutter/twilio_flutter.dart';
 import 'package:rescue_app/src/features/authentication/models/user_models.dart'
     as us;
 import 'package:rescue_app/src/features/authentication/screens/profile/update_profile_screen.dart';
-
 import '../../models/user_models.dart';
+import 'dart:math' as math;
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -34,10 +36,16 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  
+  bool crashDetected = false;
+  final timer = 15.obs;
 
-  var contact1, contactData2;
-  
+  final contactController = Get.put(ContactDetailsController());
+  final controller = Get.put(ProfileController());
+
+  var contact1, contact2;
+  var currentName;
+  Map<String, dynamic>? data;
+
   final Completer<GoogleMapController> _controller = Completer();
   GoogleMapController? _mapController;
   Position? _currentPosition;
@@ -47,9 +55,10 @@ class _DashboardState extends State<Dashboard> {
   // ignore: prefer_final_fields
   List<StreamSubscription<dynamic>> _streamSubscriptions =
       <StreamSubscription<dynamic>>[];
-  List<double> _accelerometerValues = <double>[];
 
-  final LocationSettings locationSettings = LocationSettings(
+  StreamSubscription? subscriptionAccelerometer;
+
+  final LocationSettings locationSettings = const LocationSettings(
     accuracy: LocationAccuracy.high,
     distanceFilter: 100,
   );
@@ -75,17 +84,18 @@ class _DashboardState extends State<Dashboard> {
     super.initState();
     _getCurrentLocation();
     requestLocationPermission();
+    getCurrentUserData();
+    // getCurrentUserDataStream().listen((contact1data) {
+    //   contact1 = contact1data['Contact1']['mobile'];
+    //   print(contact1);
+    // });
   }
 
   @override
   Widget build(BuildContext context) {
-    
+    final _authRepo = Get.put(AuthenticationRepository());
+    final controller = Get.put(ProfileController());
     final contactController = Get.put(ContactDetailsController());
-    if (_accelerationX > 15 || _accelerationY > 15 || _accelerationZ > 15) {
-      print('Crash Detected!');
-      FlutterBeep.beep();
-      // Do something, such as send an alert to the user or emergency services
-    }
     return Scaffold(
       appBar: AppBar(
         iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
@@ -183,21 +193,10 @@ class _DashboardState extends State<Dashboard> {
                         setState(() {
                           isSwitch = newBool;
                         });
-                        if (isSwitch == true) {
-                          _streamSubscriptions.add(accelerometerEvents!
-                              .listen((AccelerometerEvent event) {
-                            setState(() {
-                              _accelerationX = event.x;
-                              _accelerationY = event.y;
-                              _accelerationZ = event.z;
-                            });
-                          }));
-                        } else if (isSwitch == false) {
-                          // ignore: unused_local_variable
-                          for (StreamSubscription<dynamic> subscription
-                              in _streamSubscriptions) {
-                            subscription.cancel();
-                          }
+                        if (newBool == true) {
+                          startListening();
+                        } else if (newBool == false) {
+                          subscriptionAccelerometer?.cancel();
                         }
                       })
                 ],
@@ -208,8 +207,23 @@ class _DashboardState extends State<Dashboard> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          debugPrint('Alert Button');
-          sendSms();
+          Get.defaultDialog(
+              title: 'Warning: Send Alert',
+              middleText: 'Send Alert to Contacts and Rescuers?',
+              textCancel: "Cancel",
+              textConfirm: "Confirm",
+              cancelTextColor: Colors.black,
+              confirmTextColor: Colors.black,
+              barrierDismissible: false,
+              onConfirm: () {
+                debugPrint('Alert Button');
+                Get.back();
+                // sendSmsContact1();
+                Get.defaultDialog(title: 'Message', middleText: 'Alert Sent!');
+              },
+              onCancel: () {
+                Get.back();
+              });
         },
         child: Text('Ralert'),
         backgroundColor: rPrimaryColor,
@@ -373,6 +387,7 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 
+  //Function to Request Permission
   Future<bool> requestLocationPermission() async {
     var status = await Permission.location.status;
     if (status.isDenied) {
@@ -404,24 +419,106 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  // fetchContact1() async{
-  //   final user = FirebaseAuth.instance.currentUser;
-  //   DocumentSnapshot snapshot = await FirebaseFirestore.instance.collection('Users').doc(user?.uid).get();
-  //   UserModel userData = snapshot.data as UserModel;
-  //   // final doc = await FirebaseFirestore.instance
-  //   //     .collection('users')
-  //   //     .doc(user?.uid)
-  //   //     .get();
-    
-  //   contact1 = userData.contactData!['Contact1']['mobile'];
-  //   print(contact1);
-  // }
+  //Function to Get User Data from Firestore
+  getCurrentUserData() {
+    final user = FirebaseAuth.instance.currentUser;
+    FirebaseFirestore.instance
+        .collection('Users')
+        .doc(user?.email)
+        .get()
+        .then((snapshot) {
+      data = snapshot.data();
+      contact1 = data!['Contact1']['mobile'];
+      contact2 = data!['Contact2']['mobile'];
+      currentName = data!['FullName'];
+      print("This is the current name: $currentName");
+      print('This is the contact number1: $contact1');
+      print('This is the contact number2: $contact2');
+    });
+  }
 
-  void sendSms() async {
-  twilioFlutter?.sendSMS(
-      toNumber: '+639158111254', 
-      messageBody: 'I need help! I got into accident!, This is my current location: $_currentAddress\n Google Map Link: http://maps.google.com/?q=${_currentPosition!.latitude.toString()},${_currentPosition!.longitude.toString()}');
-}
+  void showDialog() {
+    timer.value = 30;
+    runTimer();
+    Get.defaultDialog(
+        title: 'Ralert!',
+        content: Column(
+          children: [
+            const Center(
+                child: Text(
+              'Crash Detected! This will automatically send alert if not cancelled.',
+              textAlign: TextAlign.center,
+            )),
+            Center(child: Obx(() => Text("${timer.value}"))),
+          ],
+        ),
+        textCancel: 'Cancel',
+        textConfirm: 'Confirm',
+        cancelTextColor: Colors.black,
+        confirmTextColor: Colors.black,
+        onCancel: () {
+          Get.back();
+          startListening();
+        },
+        onConfirm: () {
+          // sendSmsContact1();
+          Get.back();
+          Get.defaultDialog(title: 'Ralert!', middleText: 'Alert Sent!');
+          startListening();
+        },
+        barrierDismissible: false);
+  }
+
+  void runTimer() {
+    Future.delayed(Duration(seconds: 1), () {
+      timer.value--;
+      if (timer.value > 0) {
+        runTimer();
+      } else {
+        if (Get.isDialogOpen ?? false) {
+          Get.back();
+          Get.defaultDialog(title: 'Ralert!', middleText: 'Alert Sent!');
+          debugPrint("alert sent automatically!");
+          startListening();
+
+          // sendSmsContact1();
+        }
+      }
+    });
+  }
+
+  void sendSmsContact1() async {
+    final now = DateTime.now().toString();
+    twilioFlutter?.sendSMS(
+        toNumber: '$contact1',
+        messageBody:
+            "Attention: This is an emergency alert notification $currentName.  A rescue situation is currently taking place at $_currentAddress. Time of occurrence: $now.\n Google Map Link: http://maps.google.com/?q=${_currentPosition!.latitude.toString()},${_currentPosition!.longitude.toString()}");
+  }
+
+  void sendSmsContact2() async {
+    final now = DateTime.now().toString();
+    twilioFlutter?.sendSMS(
+        toNumber: '$contact2',
+        messageBody:
+            "Attention: This is an emergency alert notification $currentName.  A rescue situation is currently taking place at $_currentAddress. Time of occurrence: $now. \n Google Map Link: http://maps.google.com/?q=${_currentPosition!.latitude.toString()},${_currentPosition!.longitude.toString()}");
+  }
+
+  void startListening() {
+    subscriptionAccelerometer =
+        accelerometerEvents?.listen((AccelerometerEvent event) {
+      setState(() {
+        _accelerationX = event.x;
+        _accelerationY = event.y;
+        _accelerationZ = event.z;
+      });
+      if (_accelerationX > 15 || _accelerationY > 15 || _accelerationZ > 15) {
+        subscriptionAccelerometer?.cancel();
+        print('Crash Detected!');
+        FlutterBeep.beep();
+        showDialog();
+      }
+    });
+  }
 
   @override
   void dispose() {

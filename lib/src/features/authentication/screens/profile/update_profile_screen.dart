@@ -9,13 +9,15 @@ import 'package:rescue_app/src/features/authentication/controllers/contact_detai
 import 'package:rescue_app/src/features/authentication/controllers/profile_controller.dart';
 import 'package:rescue_app/src/features/authentication/models/user_models.dart';
 
+String? contactmobile1;
 class UpdateProfileScreen extends StatelessWidget {
   const UpdateProfileScreen({Key? key}) : super(key: key);
-
+  
   @override
   Widget build(BuildContext context) {
     final contactController = Get.put(ContactDetailsController());
     final controller = Get.put(ProfileController());
+    
     
     return Scaffold(
       appBar: AppBar(
@@ -37,6 +39,7 @@ class UpdateProfileScreen extends StatelessWidget {
               if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.hasData) {
                   UserModel userData = snapshot.data as UserModel;
+                  contactmobile1 = userData.contactData!['Contact1']['mobile'];
                   return Column(
                     children: [
                       Stack(

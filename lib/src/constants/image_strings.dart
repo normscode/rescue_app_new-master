@@ -15,7 +15,7 @@ const String rOnBoardingImage3 =
 // -- Welcome Screen Images
 // -- also used in Login & SignUp
 const String rWelcomeScreenImage =
-    "assets/images/welcome_images/welcome-screen-image.png";
+    "assets/images/welcome_images/ralert-logo.png";
 
 // -- Login Image
 const String rGoogleLogoImage = "assets/logo/google-logo.png";
