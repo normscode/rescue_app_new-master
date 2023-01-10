@@ -219,6 +219,7 @@ class _DashboardState extends State<Dashboard> {
                 debugPrint('Alert Button');
                 Get.back();
                 // sendSmsContact1();
+                // sendSmsContact2();
                 Get.defaultDialog(title: 'Message', middleText: 'Alert Sent!');
               },
               onCancel: () {
@@ -462,6 +463,7 @@ class _DashboardState extends State<Dashboard> {
         },
         onConfirm: () {
           // sendSmsContact1();
+          // sendSmsContact2();
           Get.back();
           Get.defaultDialog(title: 'Ralert!', middleText: 'Alert Sent!');
           startListening();
